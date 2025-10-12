@@ -3,122 +3,105 @@ from discord.ext import commands
 import json
 import os
 
-# ===== CONFIG =====
-ALLOWED_ROLES = [123456789012345678, 987654321098765432]  # Replace with your actual role IDs
-AFFILIATE_FILE = "affiliates.json"  # JSON backup file path
-AFFILIATE_LIST_CHANNEL_ID = 111111111111111111  # Replace with your #affiliates-list channel ID
-PARTNER_LOGS_CHANNEL_ID = 222222222222222222    # Replace with your #partner-logs channel ID
-# ==================
+# === CONFIG ===
+ALLOWED_ROLES = [1426943035828080807]
+AFFILIATE_LIST_CHANNEL = 1426943036209893478
+PARTNER_LOGS_CHANNEL = 1426943036385923261
+DATA_FILE = "affiliates.json"
 
-class Affiliates(commands.Cog):
+# === LOAD/SAVE DATA ===
+def load_affiliates():
+    if not os.path.exists(DATA_FILE):
+        return {}
+    with open(DATA_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_affiliates(data):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+
+# === MAIN COG ===
+class AffiliateManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = {}
-        self.load_data()
+        self.affiliates = load_affiliates()
 
-    # ========== Helper Functions ==========
+    def has_allowed_role(self, member):
+        return any(role.id in ALLOWED_ROLES for role in member.roles)
 
-    def load_data(self):
-        """Load affiliate data from JSON backup"""
-        if os.path.exists(AFFILIATE_FILE):
-            with open(AFFILIATE_FILE, "r") as f:
-                try:
-                    self.db = json.load(f)
-                except json.JSONDecodeError:
-                    self.db = {}
-        else:
-            self.db = {}
-
-    def save_data(self):
-        """Save affiliate data to JSON backup"""
-        with open(AFFILIATE_FILE, "w") as f:
-            json.dump(self.db, f, indent=4)
-
-    async def has_permission(self, ctx):
-        """Check if the user has at least one allowed role (by ID)"""
-        return any(role.id in ALLOWED_ROLES for role in ctx.author.roles)
-
-    async def update_affiliate_list(self, channel):
+    async def update_affiliate_list(self, guild):
         """Auto-update the affiliate list channel"""
+        channel = guild.get_channel(AFFILIATE_LIST_CHANNEL)
         if not channel:
             return
 
-        title = "## Jimmy John's | Affiliates List\n"
-        body = ""
+        if not self.affiliates:
+            text = "## Jimmy John's | Affiliates List\n*No affiliates registered yet.*"
+        else:
+            lines = [f"## Jimmy John's | Affiliates List"]
+            for name, data in self.affiliates.items():
+                reps = ", ".join(data["representatives"])
+                lines.append(f"**{name} | {reps}**")
+            lines.append("\n*This list will auto-update when we have new affiliates*")
+            text = "\n".join(lines)
 
-        for aff in self.db.values():
-            reps = ", ".join(aff['reps'])
-            body += f"**{aff['affiliate']} | {reps}**\n"
+        try:
+            # Get the last message (assuming the bot owns it)
+            messages = [msg async for msg in channel.history(limit=1)]
+            if messages and messages[0].author == self.bot.user:
+                await messages[0].edit(content=text)
+            else:
+                await channel.send(text)
+        except Exception as e:
+            print(f"[AffiliateManager] Failed to update list: {e}")
 
-        body += "\n*This list will auto-updates when we have new affiliates*"
+    @commands.command(name="register")
+    async def register_affiliate(self, ctx, affiliate_name: str, reps: str, *, person_in_charge: str):
+        """Register a new affiliate."""
+        if not self.has_allowed_role(ctx.author):
+            return await ctx.send("You don't have permission to use this command.")
 
-        # Delete previous bot messages (keep list clean)
-        async for msg in channel.history(limit=10):
-            if msg.author == self.bot.user:
-                await msg.delete()
+        if affiliate_name in self.affiliates:
+            return await ctx.send("This affiliate is already registered.")
 
-        await channel.send(f"{title}{body}")
-
-    # ========== Commands ==========
-
-    @commands.slash_command(name="register", description="Register a new affiliate")
-    async def register(self, ctx, affiliate_name: str, reps: str):
-        """Register a new affiliate"""
-        if not await self.has_permission(ctx):
-            return await ctx.respond("❌ You don't have permission to use this command.", ephemeral=True)
-
-        registered_by = ctx.author.display_name
         reps_list = [r.strip() for r in reps.split(",")]
-
-        self.db[affiliate_name.lower()] = {
-            "affiliate": affiliate_name,
-            "reps": reps_list,
-            "registered_by": registered_by
+        self.affiliates[affiliate_name] = {
+            "representatives": reps_list,
+            "person_in_charge": person_in_charge,
         }
-        self.save_data()
+        save_affiliates(self.affiliates)
 
-        # Fetch channels by ID
-        log_channel = self.bot.get_channel(PARTNER_LOGS_CHANNEL_ID)
-        list_channel = self.bot.get_channel(AFFILIATE_LIST_CHANNEL_ID)
-
-        # Log the registration
+        # Log it
+        log_channel = ctx.guild.get_channel(PARTNER_LOGS_CHANNEL)
         if log_channel:
             await log_channel.send(
                 f"**{affiliate_name}**\n"
                 f"Name of Affiliate: {affiliate_name}\n"
                 f"Affiliate Representatives: {', '.join(reps_list)}\n"
-                f"Person In Charge: {registered_by}"
+                f"Person In Charge: {person_in_charge}"
             )
 
-        # Update affiliate list
-        await self.update_affiliate_list(list_channel)
-        await ctx.respond(f"✅ {affiliate_name} registered successfully!")
+        await self.update_affiliate_list(ctx.guild)
+        await ctx.send(f"**{affiliate_name}** registered successfully.")
 
-    @commands.slash_command(name="unregister", description="Remove an affiliate")
-    async def unregister(self, ctx, affiliate_name: str):
-        """Unregister an affiliate"""
-        if not await self.has_permission(ctx):
-            return await ctx.respond("❌ You don't have permission to use this command.", ephemeral=True)
+    @commands.command(name="unregister")
+    async def unregister_affiliate(self, ctx, *, affiliate_name: str):
+        """Remove an affiliate."""
+        if not self.has_allowed_role(ctx.author):
+            return await ctx.send("You don't have permission to use this command.")
 
-        if affiliate_name.lower() not in self.db:
-            return await ctx.respond("❌ Affiliate not found!", ephemeral=True)
+        if affiliate_name not in self.affiliates:
+            return await ctx.send("Affiliate not found.")
 
-        del self.db[affiliate_name.lower()]
-        self.save_data()
+        del self.affiliates[affiliate_name]
+        save_affiliates(self.affiliates)
 
-        list_channel = self.bot.get_channel(AFFILIATE_LIST_CHANNEL_ID)
-        await self.update_affiliate_list(list_channel)
+        log_channel = ctx.guild.get_channel(PARTNER_LOGS_CHANNEL)
+        if log_channel:
+            await log_channel.send(f"Affiliate **{affiliate_name}** has been unregistered.")
 
-        await ctx.respond(f"✅ {affiliate_name} removed successfully!")
+        await self.update_affiliate_list(ctx.guild)
+        await ctx.send(f"**{affiliate_name}** unregistered successfully.")
 
-    @commands.slash_command(name="listaffiliates", description="View all registered affiliates")
-    async def listaffiliates(self, ctx):
-        """Show all affiliates"""
-        if not self.db:
-            return await ctx.respond("📭 No affiliates registered yet.")
-
-        body = "\n".join([f"**{a['affiliate']} | {', '.join(a['reps'])}**" for a in self.db.values()])
-        await ctx.respond(f"## Current Affiliates\n{body}")
-
-def setup(bot):
-    bot.add_cog(Affiliates(bot))
+async def setup(bot):
+    await bot.add_cog(AffiliateManager(bot))
