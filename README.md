@@ -3,4 +3,4 @@ Plugins for **modmail-dev/Modmail**
 
 ---
 Installation:
-`[p]fact`
+To install fact plugin use `[p]fact`
