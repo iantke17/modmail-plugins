@@ -36,9 +36,9 @@ class AffiliateManager(commands.Cog):
             return
 
         if not self.affiliates:
-            text = "## Jimmy John's | Affiliates List\n*No affiliates registered yet.*"
+            text = "## Japanese Bakery | Affiliates List\n*No affiliates registered yet.*"
         else:
-            lines = [f"## Jimmy John's | Affiliates List"]
+            lines = [f"## Japanese Bakery | Affiliates List"]
             for name, data in self.affiliates.items():
                 reps = ", ".join(data["representatives"])
                 lines.append(f"**{name} | {reps}**")
