@@ -4,9 +4,9 @@ import json
 import os
 
 # === CONFIG ===
-ALLOWED_ROLES = [1426943035828080807]
-AFFILIATE_LIST_CHANNEL = 1426943036209893478
-PARTNER_LOGS_CHANNEL = 1426943036385923261
+ALLOWED_ROLES = [AllowedRoleHere]
+AFFILIATE_LIST_CHANNEL = AffiliateListChannelIDHere
+PARTNER_LOGS_CHANNEL = PartnerLogsChannelIDHere
 DATA_FILE = "affiliates.json"
 
 # === LOAD/SAVE DATA ===
@@ -36,9 +36,9 @@ class AffiliateManager(commands.Cog):
             return
 
         if not self.affiliates:
-            text = "## Japanese Bakery | Affiliates List\n*No affiliates registered yet.*"
+            text = "## Affiliates List\n*No affiliates registered yet.*"
         else:
-            lines = [f"## Japanese Bakery | Affiliates List"]
+            lines = [f"## Affiliates List"]
             for name, data in self.affiliates.items():
                 reps = ", ".join(data["representatives"])
                 lines.append(f"**{name} | {reps}**")
