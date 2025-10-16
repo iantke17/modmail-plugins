@@ -1,7 +1,3 @@
-## Modmail Plugins
-
-Check out the [wiki](https://github.com/iantke17/modmail-plugins/wiki) for the latest news and additional info.
-
 ## List of plugins
 
 | Name | Name for command | Version | Description |
