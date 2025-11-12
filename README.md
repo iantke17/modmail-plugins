@@ -2,10 +2,10 @@
 
 ## List of plugins
 
-| Name | Name for command | Version | Description |
-| --- | --- | --- | --- |
-| FactManager | `factmanager`|V1| Sent "Did You Know?" facts when you use `[p]fact`
-| AffiliateManager | `affiliatemanager` | V1 | Managers affiliates in your server |
+| Name | Name for command | Description |
+| --- | --- | --- |
+| FactManager | `factmanager`| Sent "Did You Know?" facts when you use `[p]fact`
+| AffiliateManager | `affiliatemanager` | Managers affiliates in your server |
 
 ## How to install
 
