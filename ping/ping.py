@@ -3,23 +3,14 @@ from discord.ext import commands
 from core import checks
 from core.models import PermissionLevel
 
-
 class Ping(commands.Cog):
     """Send pings in bulk or filtered by role name."""
 
     def __init__(self, bot):
         self.bot = bot
 
-    # --------- Commands ----------
-
-    @commands.group(name="ping", invoke_without_command=True)
-    @checks.has_permissions(PermissionLevel.REGULAR)
-    async def ping(self, ctx):
-        """Ping roles in bulk. Use subcommands `all` or `with`."""
-        await ctx.send("Use `?ping all` or `?ping with <term>`")
-
     # --------- Ping All Roles ----------
-    @ping.command(name="all")
+    @commands.command(name="pingall")
     @checks.has_permissions(PermissionLevel.ADMIN)
     async def ping_all(self, ctx):
         """Ping all roles (excluding @everyone and @here). Admin only."""
@@ -33,7 +24,7 @@ class Ping(commands.Cog):
         await ctx.send(mentions)
 
     # --------- Ping Roles With Term ----------
-    @ping.command(name="with")
+    @commands.command(name="pingwith")
     @checks.has_permissions(PermissionLevel.REGULAR)
     async def ping_with(self, ctx, *, term: str):
         """Ping roles containing a specific term. Everyone can use."""
