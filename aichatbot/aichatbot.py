@@ -121,7 +121,7 @@ class AIChatbot(commands.Cog):
         """
         Calls Pollinations API for text generation using API key.
         """
-        url = "https://api.pollinations.ai/v1/generate-text"  # example endpoint
+        url = "https://api.pollination.solutions/redoc"  # example endpoint
 
         headers = {
             "Authorization": f"Bearer {key}",
