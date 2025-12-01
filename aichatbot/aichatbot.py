@@ -13,7 +13,7 @@ class AIChatbot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.config = bot.plugin_db.get_partition(self)
-        self.bot_prefix = "[p]"   # Your required prefix
+        self.bot_prefix = "?"   # Your required prefix
 
     async def get_key(self):
         return await self.config.find_one({"_id": "api_key"})
