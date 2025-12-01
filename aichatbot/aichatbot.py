@@ -13,7 +13,7 @@ class AIChatbot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.config = bot.plugin_db.get_partition(self)
-        self.bot_prefix = "@botping"  # Required custom prefix
+        self.bot_prefix = "[p]"   # Your required prefix
 
     async def get_key(self):
         return await self.config.find_one({"_id": "api_key"})
@@ -21,7 +21,6 @@ class AIChatbot(commands.Cog):
     async def get_memory_state(self):
         mem = await self.config.find_one({"_id": "memory"})
         if mem is None:
-            # Default ON
             await self.config.update_one(
                 {"_id": "memory"},
                 {"$set": {"enabled": True}},
@@ -38,16 +37,15 @@ class AIChatbot(commands.Cog):
         )
 
     def cog_check(self, ctx):
-        # Only respond when prefix matches "@botping"
         return ctx.prefix == self.bot_prefix
 
     #
-    # COMMAND: aisetkey  (Owner only)
+    #  COMMAND: aisetkey
     #
     @commands.command(name="aisetkey")
     @checks.has_permissions(PermissionLevel.OWNER)
     async def aisetkey(self, ctx, *, key: str):
-        """Set the model API key."""
+        """Set the API key."""
         await self.config.update_one(
             {"_id": "api_key"},
             {"$set": {"value": key}},
@@ -56,20 +54,20 @@ class AIChatbot(commands.Cog):
         await ctx.reply("API key saved.", mention_author=False)
 
     #
-    # COMMAND: airemember (toggle)
+    #  COMMAND: airemember
     #
     @commands.command(name="airemember")
     async def airemember(self, ctx):
         """Toggle AI memory ON/OFF."""
         enabled = await self.get_memory_state()
-        new_value = not enabled
-        await self.update_memory_state(new_value)
+        new_state = not enabled
+        await self.update_memory_state(new_state)
 
-        state = "enabled" if new_value else "disabled"
-        await ctx.reply(f"AI memory {state}.", mention_author=False)
+        msg = "enabled" if new_state else "disabled"
+        await ctx.reply(f"AI memory {msg}.", mention_author=False)
 
     #
-    # Internal: Generate AI response
+    #  Internal AI generator
     #
     async def generate_ai(self, prompt: str, key: str, memory_enabled: bool):
         url = "https://api.openai.com/v1/chat/completions"
@@ -81,7 +79,6 @@ class AIChatbot(commands.Cog):
 
         messages = []
 
-        # If memory enabled, include last memory blob
         if memory_enabled:
             mem = await self.config.find_one({"_id": "memory_blob"})
             if mem:
@@ -103,7 +100,6 @@ class AIChatbot(commands.Cog):
                 data = await resp.json()
                 reply = data["choices"][0]["message"]["content"]
 
-                # Save memory if enabled
                 if memory_enabled:
                     await self.config.update_one(
                         {"_id": "memory_blob"},
