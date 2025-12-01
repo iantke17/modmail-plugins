@@ -1,11 +1,12 @@
 import discord
 from discord.ext import commands
 import aiohttp
+
 from core import checks
 from core.models import PermissionLevel
 
 class AIChatbot(commands.Cog):
-    """AI Chatbot with optional memory."""
+    """AI Chatbot using Pollinations.AI with optional memory."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -51,13 +52,13 @@ class AIChatbot(commands.Cog):
     @commands.command(name="aisetkey")
     @checks.has_permissions(PermissionLevel.OWNER)
     async def aisetkey(self, ctx, *, key: str):
-        """Set the API key."""
+        """Set the Pollinations API key."""
         await self.config.update_one(
             {"_id": "api_key"},
             {"$set": {"value": key}},
             upsert=True
         )
-        await ctx.reply("API key saved.", mention_author=False)
+        await ctx.reply("Pollinations API key saved.", mention_author=False)
 
     # --------------------
     # COMMAND: airemember
@@ -75,7 +76,7 @@ class AIChatbot(commands.Cog):
             if not key:
                 await ctx.reply("API key not set. Use ?aisetkey first.", mention_author=False)
                 return
-            reply = await self.generate_ai(prompt, key, new_state)
+            reply = await self.generate_ai(prompt, key, memory_enabled=new_state)
             await ctx.reply(f"AI memory {msg}.\n\nResponse: {reply}", mention_author=False)
         else:
             await ctx.reply(f"AI memory {msg}.", mention_author=False)
@@ -114,30 +115,20 @@ class AIChatbot(commands.Cog):
         await ctx.reply(reply, mention_author=False)
 
     # --------------------
-    # Internal AI generator
+    # Internal AI generator using Pollinations with API key
     # --------------------
     async def generate_ai(self, prompt: str, key: str, memory_enabled: bool):
-        url = "https://api.openai.com/v1/chat/completions"
+        """
+        Calls Pollinations API for text generation using API key.
+        """
+        url = "https://api.pollinations.ai/v1/generate-text"  # example endpoint
 
         headers = {
             "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
         }
 
-        messages = []
-
-        if memory_enabled:
-            mem = await self.config.find_one({"_id": "memory_blob"})
-            if mem:
-                messages.append({"role": "system", "content": mem["value"]})
-
-        messages.append({"role": "user", "content": prompt})
-
-        payload = {
-            "model": "gpt-3.5-turbo",
-            "messages": messages,
-            "temperature": 0.7
-        }
+        payload = {"prompt": prompt}
 
         async with aiohttp.ClientSession() as session:
             async with session.post(url, headers=headers, json=payload) as resp:
@@ -145,7 +136,7 @@ class AIChatbot(commands.Cog):
                     return f"API error {resp.status}: {await resp.text()}"
 
                 data = await resp.json()
-                reply = data["choices"][0]["message"]["content"]
+                reply = data.get("text", "No response from Pollinations.")
 
                 if memory_enabled:
                     await self.config.update_one(
@@ -155,6 +146,7 @@ class AIChatbot(commands.Cog):
                     )
 
                 return reply
+
 
 async def setup(bot):
     await bot.add_cog(AIChatbot(bot))
