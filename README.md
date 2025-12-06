@@ -2,7 +2,7 @@
 *Created for modmail-dev/Modmail*  
 ***All of the plugins are created with ChatGPT***
 
-## List of Plugins
+**List of Plugins**
 
 | Name | Command Name | Description |
 | --- | --- | --- |
