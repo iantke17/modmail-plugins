@@ -1,5 +1,5 @@
 ## Modmail plugins
-*Created for modmail-dev/Modmail*
+*Created for modmail-dev/Modmail*  
 ***All of the plugins are created with ChatGPT***
 
 ## List of Plugins
