@@ -16,9 +16,7 @@ logger = logging.getLogger("Modmail")
 
 
 class BirthdayPlugin(commands.Cog):
-    """
-    Birthday plugin.
-    """
+    """Birthday plugin."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -32,7 +30,13 @@ class BirthdayPlugin(commands.Cog):
         self.timezone = "America/Chicago"
         self.enabled = True
 
-        asyncio.create_task(self._set_db())
+        asyncio.create_task(self._startup())
+
+    # --------------------------------------------------
+
+    async def _startup(self):
+        await self.bot.wait_until_ready()
+        await self._set_db()
 
     # --------------------------------------------------
 
@@ -156,17 +160,13 @@ class BirthdayPlugin(commands.Cog):
                     if not channel:
                         continue
 
-                    # Calculate age (if available)
+                    # Age
                     age = ""
 
                     if obj.get("year"):
                         age = str(now.year - obj["year"])
 
-
-                    if age:
-                        age_text = age
-                    else:
-                        age_text = ""
+                    age_text = age if age else "N/A"
 
                     text = (
                         msg.replace("{user.mention}", member.mention)
@@ -176,7 +176,7 @@ class BirthdayPlugin(commands.Cog):
 
                     await channel.send(text)
 
-            # Sleep until next midnight
+            # Sleep until midnight
             tomorrow = (now + datetime.timedelta(days=1)).replace(
                 hour=0,
                 minute=0,
@@ -203,49 +203,48 @@ class BirthdayPlugin(commands.Cog):
 
     @birthday.command()
     async def set(self, ctx: commands.Context, date: str):
-    """
-    Set your birthday.
+        """
+        Set your birthday.
 
-    Format:
-    DD/MM or DD/MM/YYYY
-    """
+        Format:
+        DD/MM or DD/MM/YYYY
+        """
 
-    parts = date.split("/")
+        parts = date.split("/")
 
-    try:
-        if len(parts) == 2:
-            # No year
-            day, month = map(int, parts)
-            year = None
+        try:
+            if len(parts) == 2:
 
-            # Validate date (use dummy year)
-            datetime.date(2000, month, day)
+                day, month = map(int, parts)
+                year = None
 
-        elif len(parts) == 3:
-            # With year
-            day, month, year = map(int, parts)
+                datetime.date(2000, month, day)
 
-            datetime.date(year, month, day)
+            elif len(parts) == 3:
 
-        else:
-            raise ValueError
+                day, month, year = map(int, parts)
 
-    except Exception:
-        await ctx.send("Invalid format. Use DD/MM or DD/MM/YYYY.")
-        return
+                datetime.date(year, month, day)
 
-    birthday_obj = {
-        "day": day,
-        "month": month,
-        "year": year,  # Can be None
-        "guild": str(ctx.guild.id),
-    }
+            else:
+                raise ValueError
 
-    self.birthdays[str(ctx.author.id)] = birthday_obj
+        except Exception:
+            await ctx.send("Invalid format. Use DD/MM or DD/MM/YYYY.")
+            return
 
-    await self._update_birthdays()
+        birthday_obj = {
+            "day": day,
+            "month": month,
+            "year": year,
+            "guild": str(ctx.guild.id),
+        }
 
-    await ctx.send(f"Birthday set to `{date}`")
+        self.birthdays[str(ctx.author.id)] = birthday_obj
+
+        await self._update_birthdays()
+
+        await ctx.send(f"Birthday set to `{date}`")
 
     # --------------------------------------------------
 
@@ -350,7 +349,8 @@ class BirthdayPlugin(commands.Cog):
 
         await ctx.send("Timezone updated.")
 
-    # --------------------------------------------------
+
+# --------------------------------------------------
 
 
 async def setup(bot):
