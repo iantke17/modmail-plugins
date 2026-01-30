@@ -32,7 +32,7 @@ class BirthdayPlugin(commands.Cog):
         self.timezone = "America/Chicago"
         self.enabled = True
 
-        self.bot.loop.create_task(self._set_db())
+        asyncio.create_task(self._set_db())
 
     # --------------------------------------------------
 
@@ -74,7 +74,7 @@ class BirthdayPlugin(commands.Cog):
         self.timezone = config.get("timezone", "America/Chicago")
         self.messages = config.get("messages", {})
 
-        self.bot.loop.create_task(self._handle_birthdays())
+        asyncio.create_task(self._handle_birthdays())
 
     # --------------------------------------------------
 
@@ -328,5 +328,5 @@ class BirthdayPlugin(commands.Cog):
     # --------------------------------------------------
 
 
-def setup(bot):
-    bot.add_cog(BirthdayPlugin(bot))
+async def setup(bot):
+    await bot.add_cog(BirthdayPlugin(bot))
