@@ -156,12 +156,22 @@ class BirthdayPlugin(commands.Cog):
                     if not channel:
                         continue
 
-                    age = now.year - obj["year"]
+                    # Calculate age (if available)
+                    age = ""
+
+                    if obj.get("year"):
+                        age = str(now.year - obj["year"])
+
+
+                    if age:
+                        age_text = age
+                    else:
+                        age_text = ""
 
                     text = (
                         msg.replace("{user.mention}", member.mention)
                            .replace("{user}", str(member))
-                           .replace("{age}", str(age))
+                           .replace("{age}", age_text)
                     )
 
                     await channel.send(text)
@@ -192,35 +202,50 @@ class BirthdayPlugin(commands.Cog):
     # --------------------------------------------------
 
     @birthday.command()
-    async def set(self, ctx: commands.Context, date: str):
-        """
-        Set your birthday.
+async def set(self, ctx: commands.Context, date: str):
+    """
+    Set your birthday.
 
-        Format: DD/MM/YYYY
-        """
+    Format:
+    DD/MM or DD/MM/YYYY
+    """
 
-        try:
-            day, month, year = map(int, date.split("/"))
+    parts = date.split("/")
 
-            # Validate date
+    try:
+        if len(parts) == 2:
+            # No year
+            day, month = map(int, parts)
+            year = None
+
+            # Validate date (use dummy year)
+            datetime.date(2000, month, day)
+
+        elif len(parts) == 3:
+            # With year
+            day, month, year = map(int, parts)
+
             datetime.date(year, month, day)
 
-        except Exception:
-            await ctx.send("Invalid format. Use DD/MM/YYYY.")
-            return
+        else:
+            raise ValueError
 
-        birthday_obj = {
-            "day": day,
-            "month": month,
-            "year": year,
-            "guild": str(ctx.guild.id),
-        }
+    except Exception:
+        await ctx.send("Invalid format. Use DD/MM or DD/MM/YYYY.")
+        return
 
-        self.birthdays[str(ctx.author.id)] = birthday_obj
+    birthday_obj = {
+        "day": day,
+        "month": month,
+        "year": year,  # Can be None
+        "guild": str(ctx.guild.id),
+    }
 
-        await self._update_birthdays()
+    self.birthdays[str(ctx.author.id)] = birthday_obj
 
-        await ctx.send(f"Birthday set to `{date}`")
+    await self._update_birthdays()
+
+    await ctx.send(f"Birthday set to `{date}`")
 
     # --------------------------------------------------
 
