@@ -202,7 +202,7 @@ class BirthdayPlugin(commands.Cog):
     # --------------------------------------------------
 
     @birthday.command()
-async def set(self, ctx: commands.Context, date: str):
+    async def set(self, ctx: commands.Context, date: str):
     """
     Set your birthday.
 
